@@ -1,8 +1,9 @@
+# cspell:ignore Källén kallen
 """The `.data` module takes care of data generation."""
 
 import logging
 import math
-from typing import Optional, Tuple
+from typing import Optional, Sequence, Tuple, TypeVar
 
 import numpy as np
 from ampform.data import EventCollection
@@ -169,3 +170,91 @@ def generate_phsp(
         progress_bar.update()
     progress_bar.close()
     return momentum_pool.select_events(slice(0, size))
+
+
+_T = TypeVar("_T")
+
+
+def compute_phsp_volume(
+    s: _T, masses: Sequence[float], sample_size: int
+) -> float:
+    """Compute phase space volume for an arbitrary number of particles.
+
+    Compute phasespace volume of momentum space for an arbitrary number of
+    particles in the final state using **Riemann integration**.
+
+    .. note:: An analytic solution exists only for the volume of the phasespace
+        of two-particle decays.
+
+    .. seealso:: `Lecture notes
+        <http://theory.gsi.de/~knoll/Lecture-notes/1-kinematic.pdf>`_
+    """
+    if len(masses) < 2:
+        raise ValueError("Need at least two masses")
+    if len(masses) == 2:
+        m_1 = masses[0]
+        m_2 = masses[1]
+        return 2 * np.pi * np.sqrt(_kallen_function(s, m_1 ** 2, m_2 ** 2)) / s
+
+    masses_new = list(masses)  # shallow copy with pop method
+    s_prime = masses_new.pop() ** 2
+    s_lower, s_upper = __create_s_range(s, masses_new)
+    integration_sample = np.linspace(
+        s_lower, s_upper, num=sample_size, endpoint=False
+    )
+    if np.isnan(integration_sample).any():
+        raise ValueError(integration_sample)
+    previous_phsp_volume = compute_phsp_volume(
+        s=integration_sample,
+        masses=masses_new,
+        sample_size=sample_size,
+    )
+    if np.isnan(previous_phsp_volume).any():
+        raise ValueError(previous_phsp_volume)
+    previous_phsp = _kallen_function(s, integration_sample, s_prime)
+    assert previous_phsp.shape == (sample_size,)
+    previous_phsp = np.sqrt(previous_phsp)
+    assert previous_phsp.shape == (sample_size,)
+    previous_phsp *= previous_phsp_volume
+    raise ValueError(previous_phsp.min())
+    assert previous_phsp.shape == (sample_size,)
+    bin_size = (s_lower - s_upper) / sample_size
+    volume = np.sum(previous_phsp * bin_size) * np.pi / s
+    return volume
+
+
+def compute_phsp_volume_mc(
+    s: _T, masses: Sequence[float], sample_size: int
+) -> float:
+    """Compute phase space volume for an arbitrary number of particles.
+
+    Compute phasespace volume of momentum space for an arbitrary number of
+    particles in the final state using **MC integration**.
+    """
+    if len(masses) < 2:
+        raise ValueError("Need at least two masses")
+    if len(masses) == 2:
+        m_1 = masses[0]
+        m_2 = masses[1]
+        return 2 * np.pi * np.sqrt(_kallen_function(s, m_1 ** 2, m_2 ** 2)) / s
+
+
+def _kallen_function(x: _T, y: _T, z: _T) -> _T:
+    """Källén function.
+
+    Original `Källén function
+    <https://en.wikipedia.org/wiki/K%C3%A4ll%C3%A9n_function>`_, that is, not
+    having square values in its argument. We use this function instead of the
+    one that can be factorized (see `Heron's formula
+    <https://en.wikipedia.org/wiki/Heron%27s_formula>`_), because we need to
+    enter :math:`s` without taking its square root.
+    """
+    return x ** 2 + y ** 2 + z ** 2 - 2 * x * y - 2 * y * z - 2 * z * x  # type: ignore
+
+
+def __create_s_range(s: _T, masses: Sequence[float]) -> Tuple[float, float]:
+    total_mass = sum(masses)
+    s_lower = total_mass ** 2
+    s_upper = np.sqrt(s) - masses[-1]
+    s_upper *= s_upper
+    return s_lower, s_upper
