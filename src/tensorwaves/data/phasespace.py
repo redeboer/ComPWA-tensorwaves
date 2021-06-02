@@ -5,8 +5,8 @@ from typing import Optional, Tuple
 import ampform as pwa
 import numpy as np
 import phasespace
-import tensorflow as tf
-from phasespace.random import get_rng
+from phasespace.backend import tnp
+from phasespace.random import generate_uniform, get_rng
 
 from tensorwaves.interfaces import (
     MomentumSample,
@@ -47,10 +47,10 @@ class TFPhaseSpaceGenerator(PhaseSpaceGenerator):
             n_events=size, seed=rng.generator
         )
         momentum_pool = {
-            int(label): momenta.numpy()[:, [3, 0, 1, 2]]
+            int(label): np.array(momenta)[:, [3, 0, 1, 2]]
             for label, momenta in particles.items()
         }
-        return momentum_pool, weights.numpy()
+        return momentum_pool, np.array(weights)
 
 
 class TFUniformRealNumberGenerator(UniformRealNumberGenerator):
@@ -58,17 +58,19 @@ class TFUniformRealNumberGenerator(UniformRealNumberGenerator):
 
     def __init__(self, seed: Optional[float] = None):
         self.seed = seed
-        self.dtype = tf.float64
+        self.dtype = tnp.float64
 
     def __call__(
         self, size: int, min_value: float = 0.0, max_value: float = 1.0
     ) -> np.ndarray:
-        return self.generator.uniform(
+        sample = generate_uniform(
+            self.generator,
             shape=[size],
             minval=min_value,
             maxval=max_value,
             dtype=self.dtype,
-        ).numpy()
+        )
+        return np.array(sample)
 
     @property
     def seed(self) -> Optional[float]:
