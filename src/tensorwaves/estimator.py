@@ -71,7 +71,7 @@ def create_cached_function(
     return cached_function, cache_transformer
 
 
-def gradient_creator(
+def create_gradient(
     function: Callable[[Mapping[str, ParameterValue]], ParameterValue],
     backend: str,
 ) -> Callable[[Mapping[str, ParameterValue]], dict[str, ParameterValue]]:
@@ -134,7 +134,7 @@ class ChiSquared(Estimator):
         else:
             self.__weights = weights
 
-        self.__gradient = gradient_creator(self.__call__, backend)
+        self.__gradient = create_gradient(self.__call__, backend)
         self.__sum = find_function("sum", backend)
 
     def __call__(self, parameters: Mapping[str, ParameterValue]) -> float:
@@ -196,7 +196,7 @@ class UnbinnedNLL(Estimator):  # pylint: disable=too-many-instance-attributes
         self.__phsp = {k: v for k, v in phsp.items() if k != "weights"}
         self.__phsp_weights = phsp.get("weights")
         self.__function = function
-        self.__gradient = gradient_creator(self.__call__, backend)
+        self.__gradient = create_gradient(self.__call__, backend)
 
         self.__mean_function = find_function("mean", backend)
         self.__sum_function = find_function("sum", backend)

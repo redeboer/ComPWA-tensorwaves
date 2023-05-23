@@ -6,7 +6,7 @@ from typing import Mapping
 import numpy as np
 import pytest
 
-from tensorwaves.estimator import gradient_creator
+from tensorwaves.estimator import create_gradient
 from tensorwaves.interface import ParameterValue
 
 
@@ -92,11 +92,11 @@ class Function2D:
         ),
     ],
 )
-def test_jax_gradient(
+def test_create_gradient_jax(
     function: Function1D | Function2D,
     params_cases: list[dict[str, ParameterValue]],
 ):
-    gradient = gradient_creator(function, backend="jax")
+    gradient = create_gradient(function, backend="jax")
     for params in params_cases:
         gradient_values = gradient(params)
         assert gradient_values == function.true_gradient(params)
