@@ -30,14 +30,10 @@ def get_backend_modules(backend: str | tuple | dict) -> str | tuple | dict:
     """
     if isinstance(backend, str):
         if backend == "jax":
-            try:
-                from jax import numpy as jnp
-                from jax import scipy as jsp
-                from jax.config import config
-            except ImportError:  # pragma: no cover
-                raise_missing_module_error("jax", extras_require="jax")
+            set_jax_x64()
+            from jax import numpy as jnp
+            from jax import scipy as jsp
 
-            config.update("jax_enable_x64", True)
             return (jnp, jsp.special)
         if backend in {"numpy", "numba"}:
             import numpy as np
@@ -100,3 +96,12 @@ def raise_missing_module_error(module_name: str, *, extras_require: str = "") ->
             f"  pip install tensorwaves[{extras_require}]\n"
         )
     raise ImportError(error_message)
+
+
+def set_jax_x64(value: bool = True) -> None:
+    try:
+        from jax.config import config
+    except ImportError:  # pragma: no cover
+        raise_missing_module_error("jax", extras_require="jax")
+
+    config.update("jax_enable_x64", value)

@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable, Iterable, Mapping
 
 from tensorwaves.data.transform import SympyDataTransformer
-from tensorwaves.function._backend import find_function, raise_missing_module_error
+from tensorwaves.function._backend import find_function, set_jax_x64
 from tensorwaves.function.sympy import create_parametrized_function, prepare_caching
 from tensorwaves.interface import (
     DataSample,
@@ -76,13 +76,8 @@ def create_gradient(
     backend: str,
 ) -> Callable[[Mapping[str, ParameterValue]], dict[str, ParameterValue]]:
     if backend == "jax":
-        try:
-            import jax
-            from jax.config import config
-        except ImportError:  # pragma: no cover
-            raise_missing_module_error("jax", extras_require="jax")
-
-        config.update("jax_enable_x64", True)
+        set_jax_x64()
+        import jax
 
         return jax.grad(function)
 
