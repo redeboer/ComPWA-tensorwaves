@@ -2,9 +2,8 @@ ci:
   autoupdate_commit_msg: "MAINT: update pip constraints and pre-commit"
   autoupdate_schedule: quarterly # already done by requirements-cron.yml
   skip:
-    - flake8
+    - check-jsonschema
     - mypy
-    - pylint
     - pyright
     - taplo
 
@@ -15,7 +14,7 @@ repos:
       - id: check-useless-excludes
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: check-ast
       - id: check-case-conflict
@@ -42,17 +41,18 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/ComPWA/repo-maintenance
-    rev: 0.0.182
+    rev: 0.1.0
     hooks:
       - id: check-dev-files
         args:
           - --ci-test-extras=all
           - --doc-apt-packages=graphviz
+          - --no-prettierrc
           - --pin-requirements=monthly
           - --repo-name=tensorwaves
           - --repo-title=TensorWaves
+      - id: colab-toc-visible
       - id: fix-nbformat-version
-      - id: format-setup-cfg
       - id: set-nb-cells
         args:
           - --add-install-cell
@@ -62,32 +62,46 @@ repos:
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.7.0
     hooks:
-      - id: nbqa-black
-        additional_dependencies:
-          - black>=22.1.0
-      - id: nbqa-flake8
-      - id: nbqa-isort
       - id: nbqa-pyupgrade
         args:
           - --py37-plus
+      - id: nbqa-ruff
+        args:
+          - --fix
 
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.9.1
     hooks:
       - id: black
+      - id: black-jupyter
+        args: [--line-length=85]
+        types_or: [jupyter]
 
   - repo: https://github.com/asottile/blacken-docs
-    rev: 1.14.0
+    rev: 1.16.0
     hooks:
       - id: blacken-docs
 
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.27.0
+    hooks:
+      - id: check-jsonschema
+        name: Check CITATION.cff
+        args:
+          - --default-filetype
+          - yaml
+          - --schemafile
+          - https://citation-file-format.github.io/1.2.0/schema.json
+          - CITATION.cff
+        pass_filenames: false
+
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v6.31.0
+    rev: v7.3.1
     hooks:
       - id: cspell
 
   - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
-    rev: "2.7.2"
+    rev: 2.7.2
     hooks:
       - id: editorconfig-checker
         name: editorconfig
@@ -96,25 +110,6 @@ repos:
           (?x)^(
             .*\.py
           )$
-
-  - repo: local
-    hooks:
-      - id: flake8
-        name: flake8
-        entry: flake8
-        language: system
-        types:
-          - python
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.35.0
-    hooks:
-      - id: markdownlint
 
   - repo: local
     hooks:
@@ -136,6 +131,7 @@ repos:
             cell.attachments
             cell.metadata.code_folding
             cell.metadata.id
+            cell.metadata.pycharm
             cell.metadata.user_expressions
             metadata.celltoolbar
             metadata.colab.name
@@ -151,41 +147,37 @@ repos:
             metadata.vscode
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.9-for-vscode
+    rev: v3.0.3
     hooks:
       - id: prettier
 
-  - repo: https://github.com/pycqa/pydocstyle
-    rev: 6.3.0
-    hooks:
-      - id: pydocstyle
-
-  - repo: local
-    hooks:
-      - id: pylint
-        name: pylint
-        entry: pylint
-        args:
-          - --rcfile=.pylintrc
-          - --score=no
-        language: system
-        require_serial: true
-        types:
-          - python
-
   - repo: https://github.com/ComPWA/mirrors-pyright
-    rev: v1.1.315
+    rev: v1.1.330
     hooks:
       - id: pyright
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.7.0
+    rev: v3.15.0
     hooks:
       - id: pyupgrade
         args:
           - --py37-plus
 
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.292
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+
   - repo: https://github.com/ComPWA/mirrors-taplo
-    rev: v0.8.0
+    rev: v0.8.1
     hooks:
       - id: taplo
+
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.1
+    hooks:
+      - id: toml-sort
+        args:
+          - --in-place
