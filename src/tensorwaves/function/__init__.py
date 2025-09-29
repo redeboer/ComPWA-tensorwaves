@@ -42,26 +42,6 @@ def _all_unique(
         raise ValueError(msg)
 
 
-def _validate_arguments(
-    instance: PositionalArgumentFunction, _: attrs.Attribute, value: Callable
-) -> None:
-    if not callable(value):
-        msg = "Function is not callable"
-        raise TypeError(msg)
-    n_args = len(instance.argument_order)
-    signature = inspect.signature(value)
-    if len(signature.parameters) != n_args:
-        if len(signature.parameters) == 1:
-            parameter = next(iter(signature.parameters.values()))
-            if parameter.kind == parameter.VAR_POSITIONAL:
-                return
-        msg = (
-            f"Lambdified function expects {len(signature.parameters)} arguments, but"
-            f" {n_args} sorted arguments were provided."
-        )
-        raise ValueError(msg)
-
-
 def _to_tuple(argument_order: Iterable[str]) -> tuple[str, ...]:
     return tuple(argument_order)
 
@@ -79,7 +59,7 @@ class PositionalArgumentFunction(Function[DataSample, np.ndarray]):
     .. seealso:: :func:`.create_function`
     """
 
-    function: Callable[..., np.ndarray] = field(validator=_validate_arguments)
+    function: Callable[..., np.ndarray]
     """A function with positional arguments only."""
     argument_order: tuple[str, ...] = field(
         converter=_to_tuple, validator=[_all_str, _all_unique]
